@@ -26,6 +26,8 @@ export default function App() {
   const [gameState, setGameState] = useState<GameState>('START');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [questionCount, setQuestionCount] = useState<number>(10);
+  const [useTimer, setUseTimer] = useState<boolean>(true);
+  const [timeLeft, setTimeLeft] = useState<number>(60);
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState<string[]>([]);
@@ -59,14 +61,25 @@ export default function App() {
     setUserAnswer([]);
     setShowHint(false);
     setIsWrong(false);
+    setTimeLeft(60); // Reset timer to 60s
     
     const word = question.word.replace(/[- ]/g, ''); // Remove hyphens/spaces for tiles
-    const letters = word.split('').sort(() => Math.random() - 0.5);
-    setShuffledLetters(letters);
+    const letters = word.split('');
+    
+    // Difficulty: Add 5 random decoy letters
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const decoys = Array.from({ length: 5 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]);
+    
+    const combined = [...letters, ...decoys].sort(() => Math.random() - 0.5);
+    setShuffledLetters(combined);
   };
 
   const handleLetterClick = (letter: string, index: number) => {
     if (isWrong) return;
+
+    // Check if we still need more letters
+    const targetWord = currentQuestion.word.replace(/[- ]/g, '');
+    if (userAnswer.length >= targetWord.length) return;
 
     setUserAnswer(prev => [...prev, letter]);
     const newShuffled = [...shuffledLetters];
@@ -82,6 +95,31 @@ export default function App() {
   };
 
   const currentQuestion = currentQuestions[currentIndex];
+
+  // Timer Logic
+  useEffect(() => {
+    if (gameState !== 'PLAYING' || !useTimer) return;
+
+    if (timeLeft <= 0) {
+      // Time is up! 
+      setIsWrong(true);
+      setTimeout(() => {
+        if (currentIndex + 1 < currentQuestions.length) {
+          setCurrentIndex(prev => prev + 1);
+          prepareLevel(currentQuestions[currentIndex + 1]);
+        } else {
+          setGameState('FINISHED');
+        }
+      }, 1500);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, gameState, useTimer, currentIndex, currentQuestions]);
 
   // Check answer when userAnswer matches word length
   useEffect(() => {
@@ -170,18 +208,36 @@ export default function App() {
               {/* Count Selection */}
               <div>
                 <label className="block text-xs font-black uppercase opacity-40 mb-3 tracking-widest">Jumlah Pertanyaan</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[5, 10, 20, 50, 100].map((count) => (
                     <button
                       key={count}
                       onClick={() => setQuestionCount(count)}
-                      className={`p-2 rounded-xl border-2 border-black font-bold text-sm transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
+                      className={`p-2 rounded-xl border-2 border-black font-bold text-xs sm:text-sm transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
                         ${questionCount === count ? 'bg-[#FF6B6B] text-white' : 'bg-white hover:bg-gray-50'}`}
                     >
                       {count}
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Timer Selection */}
+              <div>
+                <label className="block text-xs font-black uppercase opacity-40 mb-3 tracking-widest">Mode Waktu (60s)</label>
+                <button
+                  onClick={() => setUseTimer(!useTimer)}
+                  className={`w-full p-4 rounded-xl border-4 border-black font-bold uppercase flex items-center justify-between transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
+                    ${useTimer ? 'bg-[#4ADE80]' : 'bg-gray-100 opacity-60'}`}
+                >
+                  <span>Timer: {useTimer ? 'ON' : 'OFF'}</span>
+                  <div className={`w-12 h-6 rounded-full border-2 border-black relative transition-colors ${useTimer ? 'bg-white' : 'bg-gray-400'}`}>
+                    <motion.div 
+                      animate={{ x: useTimer ? 24 : 0 }}
+                      className="absolute top-0.5 left-0.5 w-4 h-4 bg-black rounded-full" 
+                    />
+                  </div>
+                </button>
               </div>
 
               <button
@@ -207,7 +263,7 @@ export default function App() {
             className="max-w-2xl mx-auto px-4 py-8 flex flex-col min-h-screen"
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 bg-white border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between mb-4 bg-white border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <button 
                 onClick={() => setGameState('START')}
                 className="p-2 hover:bg-[#FDFCF0] rounded-xl transition-colors"
@@ -217,18 +273,20 @@ export default function App() {
               </button>
               
               <div className="flex flex-col items-center">
-                <span className="text-xs font-black uppercase opacity-50 tracking-widest leading-none">Category</span>
-                <span className="font-bold text-lg uppercase">{currentQuestion.category}</span>
+                <span className="text-[10px] font-black uppercase opacity-50 tracking-widest leading-none">Timer</span>
+                <span className={`font-black text-xl ${timeLeft < 10 ? 'text-[#FF6B6B] animate-pulse' : ''}`}>
+                  {useTimer ? `${timeLeft}s` : '∞'}
+                </span>
               </div>
 
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black uppercase opacity-50 tracking-widest leading-none">Score</span>
+                <span className="text-[10px] font-black uppercase opacity-50 tracking-widest leading-none">Score</span>
                 <span className="font-bold text-xl text-[#4ADE80]">{score}</span>
               </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full bg-black h-4 rounded-full overflow-hidden mb-8 border-2 border-black">
+            {/* Progress Bar (Overall) */}
+            <div className="w-full bg-black h-2 rounded-full overflow-hidden mb-8 border border-black">
               <motion.div 
                 className="h-full bg-[#FFD93D]"
                 initial={{ width: 0 }}
@@ -238,10 +296,52 @@ export default function App() {
 
             {/* Game Content */}
             <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <div className="mb-6">
+              <div className="mb-6 w-full flex flex-col items-center">
                 <span className="inline-block bg-[#FF6B6B] text-white text-xs font-black uppercase px-3 py-1 rounded-full mb-2">
                   Soal {currentIndex + 1} / {currentQuestions.length}
                 </span>
+                
+                {/* Visual Clue (Hidden until shown) */}
+                <div className="relative mb-6">
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    key={`img-container-${currentQuestion.id}`}
+                    className="w-48 h-48 sm:w-64 sm:h-64 bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center relative"
+                  >
+                    <AnimatePresence mode="wait">
+                      {showHint ? (
+                        <motion.img 
+                          key="image"
+                          initial={{ opacity: 0, filter: 'blur(10px)' }}
+                          animate={{ opacity: 1, filter: 'blur(0px)' }}
+                          src={`https://loremflickr.com/400/400/${currentQuestion.category.toLowerCase().replace(' ', '')},${currentQuestion.word.toLowerCase()}?lock=${currentQuestion.id}`}
+                          alt="Visual Clue"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <motion.div 
+                          key="mystery"
+                          exit={{ opacity: 0 }}
+                          className="flex flex-col items-center justify-center text-gray-300"
+                        >
+                          <HelpCircle size={80} className="mb-2 opacity-20" />
+                          <p className="text-xs font-black uppercase tracking-tighter opacity-20">Gambar Terkunci</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <div className="absolute inset-0 bg-black/5 pointer-events-none" />
+                  </motion.div>
+                  
+                  {/* Timer Progress Ring (Optional) */}
+                  {useTimer && (
+                    <div className="absolute -bottom-2 -right-2 bg-black text-white w-12 h-12 rounded-full border-4 border-[#FFD93D] flex items-center justify-center font-black text-sm z-10">
+                      {timeLeft}
+                    </div>
+                  )}
+                </div>
+
                 <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
                    <HelpCircle className="w-6 h-6 text-[#4D96FF]" /> Petunjuk:
                 </h2>
@@ -251,11 +351,11 @@ export default function App() {
               </div>
 
               {/* Answer Area */}
-              <div className="flex flex-wrap justify-center gap-2 my-10 min-h-[64px]">
+              <div className="flex flex-wrap justify-center gap-2 my-8 min-h-[64px]">
                 {currentQuestion.word.replace(/[- ]/g, '').split('').map((_, i) => (
                   <motion.div
                     key={`answer-${i}`}
-                    className={`w-12 h-14 sm:w-16 sm:h-20 flex items-center justify-center text-3xl font-black border-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors
+                    className={`w-10 h-12 sm:w-14 sm:h-18 flex items-center justify-center text-2xl sm:text-3xl font-black border-4 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors
                       ${isWrong ? 'bg-[#FF6B6B] text-white border-black animate-shake' : 
                         userAnswer[i] ? 'bg-[#FFD93D] border-black text-black' : 'bg-white border-gray-200'}`}
                     animate={{ 
@@ -268,8 +368,8 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Options Area */}
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
+              {/* Options Area (Decoy Letters Included Here) */}
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8">
                 <AnimatePresence>
                   {shuffledLetters.map((letter, i) => (
                     <motion.button
@@ -279,7 +379,7 @@ export default function App() {
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
                       onClick={() => handleLetterClick(letter, i)}
-                      className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-2xl font-black bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FDFCF0] hover:-translate-y-1 active:translate-y-0 transition-transform"
+                      className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-black bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FDFCF0] hover:-translate-y-1 active:translate-y-0 transition-transform"
                     >
                       {letter}
                     </motion.button>
@@ -288,21 +388,21 @@ export default function App() {
               </div>
 
               {/* Controls */}
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-4">
                 <button
                   onClick={handleUndo}
                   disabled={userAnswer.length === 0 || isWrong}
-                  className="flex items-center gap-2 bg-white border-4 border-black px-6 py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-30 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold uppercase text-sm"
+                  className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-30 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold uppercase text-xs sm:text-sm"
                 >
                   <RotateCcw size={18} /> Hapus
                 </button>
                 <button
                   onClick={() => setShowHint(true)}
                   disabled={showHint}
-                  className={`flex items-center gap-2 border-4 border-black px-6 py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all font-bold uppercase text-sm
-                    ${showHint ? 'bg-gray-100 opacity-50' : 'bg-[#4D96FF] text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none'}`}
+                  className={`flex items-center gap-2 border-4 border-black px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all font-bold uppercase text-xs sm:text-sm
+                    ${showHint ? 'bg-gray-100 opacity-50' : 'bg-[#FFD93D] text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none'}`}
                 >
-                  <Lightbulb size={18} /> Hint
+                  <Lightbulb size={18} /> Lihat Clue
                 </button>
               </div>
 
