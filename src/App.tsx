@@ -249,7 +249,7 @@ export default function App() {
             </div>
             
             <div className="mt-12 flex items-center gap-2 text-sm font-bold uppercase opacity-40">
-              <Settings size={16} /> Dev By AI Studio
+              <Settings size={16} /> Dev By Rafi Maulana
             </div>
           </motion.div>
         )}
