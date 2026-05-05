@@ -313,9 +313,9 @@ export default function App() {
                       {showHint ? (
                         <motion.img 
                           key="image"
-                          initial={{ opacity: 0, filter: 'blur(10px)' }}
-                          animate={{ opacity: 1, filter: 'blur(0px)' }}
-                          src={`https://loremflickr.com/400/400/${currentQuestion.category.toLowerCase().replace(' ', '')},${currentQuestion.word.toLowerCase()}?lock=${currentQuestion.id}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          src={`https://loremflickr.com/400/400/${currentQuestion.englishTag}?lock=${currentQuestion.id}`}
                           alt="Visual Clue"
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
