@@ -9,9 +9,9 @@ export interface Question {
 
 export const QUESTIONS: Question[] = [
   // --- HEWAN (34) ---
-  { id: 1, word: 'GAJAH', hint: 'Hewan besar dengan belalai panjang.', category: 'Hewan', englishTag: 'elephant', imageUrl: '' },
-  { id: 2, word: 'JERAPAH', hint: 'Hewan dengan leher sangat panjang.', category: 'Hewan', englishTag: 'giraffe', imageUrl: '' },
-  { id: 3, word: 'KUCING', hint: 'Hewan peliharaan yang bunyinya meong.', category: 'Hewan', englishTag: 'cat', imageUrl: '' },
+  { id: 1, word: 'GAJAH', hint: 'Hewan besar dengan belalai panjang.', category: 'Hewan', englishTag: 'elephant', imageUrl: 'https://share.google/RAR5yYn60hWqmMsPk' },
+  { id: 2, word: 'JERAPAH', hint: 'Hewan dengan leher sangat panjang.', category: 'Hewan', englishTag: 'giraffe', imageUrl: 'https://share.google/5acpfCuELwuoo40OH' },
+  { id: 3, word: 'KUCING', hint: 'Hewan peliharaan yang bunyinya meong.', category: 'Hewan', englishTag: 'cat', imageUrl: 'https://share.google/Kfb9I8UMjeLw6xEYD' },
   { id: 4, word: 'ANJING', hint: 'Hewan yang dikenal sebagai sahabat manusia.', category: 'Hewan', englishTag: 'dog', imageUrl: '' },
   { id: 5, word: 'HARIMAU', hint: 'Kucing besar bergaris-garis.', category: 'Hewan', englishTag: 'tiger', imageUrl: '' },
   { id: 6, word: 'SINGA', hint: 'Raja hutan yang memiliki rambut lebat di leher (jantan).', category: 'Hewan', englishTag: 'lion,animal', imageUrl: '' },
