@@ -27,6 +27,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [useTimer, setUseTimer] = useState<boolean>(true);
+  const [useSound, setUseSound] = useState<boolean>(true);
   const [timeLeft, setTimeLeft] = useState<number>(60);
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -36,8 +37,24 @@ export default function App() {
   const [showHint, setShowHint] = useState(false);
   const [isWrong, setIsWrong] = useState(false);
 
+  // Sound Effects logic
+  const playSound = useCallback((url: string) => {
+    if (!useSound) return;
+    const audio = new Audio(url);
+    audio.volume = 0.4;
+    audio.play().catch(() => {}); // Catch browser autoplay blocks
+  }, [useSound]);
+
+  const sounds = {
+    click: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+    success: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+    wrong: 'https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3',
+    finish: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'
+  };
+
   // Filter and shuffle questions
   const startGame = () => {
+    playSound(sounds.click);
     let filtered = selectedCategory === 'Semua' 
       ? [...QUESTIONS] 
       : QUESTIONS.filter(q => q.category === selectedCategory);
@@ -81,6 +98,7 @@ export default function App() {
     const targetWord = currentQuestion.word.replace(/[- ]/g, '');
     if (userAnswer.length >= targetWord.length) return;
 
+    playSound(sounds.click);
     setUserAnswer(prev => [...prev, letter]);
     const newShuffled = [...shuffledLetters];
     newShuffled.splice(index, 1);
@@ -102,12 +120,14 @@ export default function App() {
 
     if (timeLeft <= 0) {
       // Time is up! 
+      playSound(sounds.wrong);
       setIsWrong(true);
       setTimeout(() => {
         if (currentIndex + 1 < currentQuestions.length) {
           setCurrentIndex(prev => prev + 1);
           prepareLevel(currentQuestions[currentIndex + 1]);
         } else {
+          playSound(sounds.finish);
           setGameState('FINISHED');
         }
       }, 1500);
@@ -119,7 +139,7 @@ export default function App() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, gameState, useTimer, currentIndex, currentQuestions]);
+  }, [timeLeft, gameState, useTimer, currentIndex, currentQuestions, playSound, sounds.wrong, sounds.finish]);
 
   // Check answer when userAnswer matches word length
   useEffect(() => {
@@ -130,6 +150,7 @@ export default function App() {
     if (userAnswer.length === targetWord.length) {
       if (userAnswer.join('') === targetWord) {
         // Correct!
+        playSound(sounds.success);
         confetti({
           particleCount: 100,
           spread: 70,
@@ -144,11 +165,13 @@ export default function App() {
             setCurrentIndex(prev => prev + 1);
             prepareLevel(currentQuestions[currentIndex + 1]);
           } else {
+            playSound(sounds.finish);
             setGameState('FINISHED');
           }
         }, 1000);
       } else {
         // Wrong
+        playSound(sounds.wrong);
         setIsWrong(true);
         setTimeout(() => {
           // Reset current level input
@@ -181,7 +204,7 @@ export default function App() {
             </motion.div>
             
             <h1 className="text-5xl font-black mb-4 tracking-tight leading-none uppercase italic">
-              Tebak Kata <br/> <span className="text-[#FF6B6B]">Pintar!</span>
+              Game Pertama <br/> <span className="text-[#FF6B6B]">Saya</span>
             </h1>
             <p className="text-lg font-medium opacity-70 mb-8">
               Pilih kategori dan jumlah soal untuk memulai tantanganmu!
@@ -222,22 +245,31 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Timer Selection */}
-              <div>
-                <label className="block text-xs font-black uppercase opacity-40 mb-3 tracking-widest">Mode Waktu (60s)</label>
-                <button
-                  onClick={() => setUseTimer(!useTimer)}
-                  className={`w-full p-4 rounded-xl border-4 border-black font-bold uppercase flex items-center justify-between transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
-                    ${useTimer ? 'bg-[#4ADE80]' : 'bg-gray-100 opacity-60'}`}
-                >
-                  <span>Timer: {useTimer ? 'ON' : 'OFF'}</span>
-                  <div className={`w-12 h-6 rounded-full border-2 border-black relative transition-colors ${useTimer ? 'bg-white' : 'bg-gray-400'}`}>
-                    <motion.div 
-                      animate={{ x: useTimer ? 24 : 0 }}
-                      className="absolute top-0.5 left-0.5 w-4 h-4 bg-black rounded-full" 
-                    />
-                  </div>
-                </button>
+              {/* Timer & Sound Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Timer Toggle */}
+                <div>
+                  <label className="block text-xs font-black uppercase opacity-40 mb-3 tracking-widest leading-none">Waktu</label>
+                  <button
+                    onClick={() => { playSound(sounds.click); setUseTimer(!useTimer); }}
+                    className={`w-full p-3 rounded-xl border-4 border-black font-bold uppercase transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
+                      ${useTimer ? 'bg-[#4ADE80]' : 'bg-gray-100 opacity-60'}`}
+                  >
+                    {useTimer ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+                
+                {/* Sound Toggle */}
+                <div>
+                  <label className="block text-xs font-black uppercase opacity-40 mb-3 tracking-widest leading-none">Suara</label>
+                  <button
+                    onClick={() => { setUseSound(!useSound); }}
+                    className={`w-full p-3 rounded-xl border-4 border-black font-bold uppercase transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
+                      ${useSound ? 'bg-[#FFD93D]' : 'bg-gray-100 opacity-60'}`}
+                  >
+                    {useSound ? <Volume2 className="mx-auto" size={18} /> : <div className="flex items-center justify-center gap-1 opacity-50"><Volume2 size={18}/> OFF</div>}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -260,12 +292,29 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="max-w-2xl mx-auto px-4 py-8 flex flex-col min-h-screen"
+            className="max-w-2xl mx-auto px-4 py-8 flex flex-col min-h-screen relative"
           >
+            {/* Wrong Answer Overlay */}
+            <AnimatePresence>
+              {isWrong && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.5 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                >
+                  <div className="bg-[#FF6B6B] text-white border-8 border-black p-10 rounded-[3rem] shadow-[20px_20px_0px_0px_rgba(0,0,0,1)] text-center">
+                    <h2 className="text-8xl font-black italic tracking-tighter uppercase leading-none">SALAH!</h2>
+                    <p className="text-2xl font-black mt-2 uppercase">COBA LAGI...</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-4 bg-white border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <button 
-                onClick={() => setGameState('START')}
+                onClick={() => { playSound(sounds.click); setGameState('START'); }}
                 className="p-2 hover:bg-[#FDFCF0] rounded-xl transition-colors"
                 title="Keluar"
               >
@@ -315,7 +364,7 @@ export default function App() {
                           key="image"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          src={`https://loremflickr.com/400/400/${currentQuestion.englishTag}?lock=${currentQuestion.id}`}
+                          src={currentQuestion.imageUrl || `https://loremflickr.com/400/400/${currentQuestion.englishTag}?lock=${currentQuestion.id}`}
                           alt="Visual Clue"
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
@@ -378,8 +427,10 @@ export default function App() {
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
+                      whileHover={{ scale: 1.1, rotate: 2 }}
+                      whileTap={{ scale: 0.9, rotate: -2 }}
                       onClick={() => handleLetterClick(letter, i)}
-                      className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-black bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FDFCF0] hover:-translate-y-1 active:translate-y-0 transition-transform"
+                      className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl font-black bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FDFCF0] transition-colors"
                     >
                       {letter}
                     </motion.button>
@@ -390,14 +441,14 @@ export default function App() {
               {/* Controls */}
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <button
-                  onClick={handleUndo}
+                  onClick={() => { playSound(sounds.click); handleUndo(); }}
                   disabled={userAnswer.length === 0 || isWrong}
                   className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-30 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold uppercase text-xs sm:text-sm"
                 >
                   <RotateCcw size={18} /> Hapus
                 </button>
                 <button
-                  onClick={() => setShowHint(true)}
+                  onClick={() => { playSound(sounds.click); setShowHint(true); }}
                   disabled={showHint}
                   className={`flex items-center gap-2 border-4 border-black px-4 py-2 sm:px-6 sm:py-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all font-bold uppercase text-xs sm:text-sm
                     ${showHint ? 'bg-gray-100 opacity-50' : 'bg-[#FFD93D] text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none'}`}
@@ -447,7 +498,7 @@ export default function App() {
 
             <div className="flex flex-col gap-4 w-full max-w-sm">
               <button
-                onClick={() => setGameState('START')}
+                onClick={() => { playSound(sounds.click); setGameState('START'); }}
                 className="bg-[#FFD93D] border-4 border-black p-5 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3"
               >
                 <Play size={24} className="fill-current" />
@@ -455,7 +506,7 @@ export default function App() {
               </button>
               
               <button
-                onClick={() => setGameState('START')}
+                onClick={() => { playSound(sounds.click); setGameState('START'); }}
                 className="bg-white border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
               >
                 <span className="text-lg font-bold uppercase">Menu Utama</span>
